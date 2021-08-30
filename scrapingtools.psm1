@@ -186,7 +186,7 @@ function Find-FirstPixelTestResult
     $needle = new-object System.Drawing.Bitmap $toFInd
     $haystack = new-object System.Drawing.Bitmap $findin
     if($findInLoaded.PixelFormat -ne $tofindLoaded.PixelFormat){Write-Error "Image pixels are different formats: $($findInLoaded.PIxelFormat) and $($tofindloaded.PIxelFormat)"; return}
-    $currentneedlex=$currentneedley=$currenthaystackx=$currenthaystacky=0
+    #$currentneedlex=$currentneedley=$currenthaystackx=$currenthaystacky=0
 
     $haystackdata = $haystack.LockBits([system.drawing.rectangle]::new(0, 0, $haystack.Width, $haystack.height), "ReadOnly" ,$haystack.PixelFormat)
     $needledata = $needle.LockBits([system.drawing.rectangle]::new(0, 0, $needle.Width, $needle.height), "ReadOnly" ,$haystack.PixelFormat)
