@@ -55,7 +55,7 @@ function Move-PointerPosition
             Moves the cursor relative to its current location
             e.g. "up 10px, left 50px"
         .Synopsis
-            Lol vector math.... maybe later since I was but a C student.
+            Lol vector math.... maybe later since I was but a C student.  Thats... grade not language
     #>
     [CmdletBinding(DefaultParameterSetName='numbers')]
     param(

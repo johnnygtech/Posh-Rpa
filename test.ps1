@@ -3,6 +3,8 @@ remove-module inputtools
 import-module ./scrapingtools.psm1
 import-module ./inputtools.psm1
 
+New-Item -ItemType Directory -Name screenshots
+
 #take full screen
 New-ScreenShot -path "./screenshots/fullscreen.bmp"
 
@@ -10,7 +12,7 @@ New-ScreenShot -path "./screenshots/fullscreen.bmp"
 $testparameters=0,0,35,35
 #take partial screen
 New-ScreenShot -path "./screenshots/partialscreen.bmp" -startx $testparameters[0] -starty $testparameters[1] -endx $testparameters[2] -endy $testparameters[3]
-$found=Find-BitmapInBitmap -toFind .\partialscreen.bmp -findIn .\fullscreen.bmp
+$found=Find-BitmapInBitmap -toFind ./screenshots/partialscreen.bmp -findIn "./screenshots/fullscreen.bmp"
 Write-host "Test 1 - " -NoNewline
 write-verbose "found x is = $($found[1].xlocation)"
 write-verbose "expected   = $($testParameters[0])"

@@ -1,8 +1,15 @@
 function Start-ScrapingLoop
 {
+    <#
+        .DESCRIPTION
+            Will eventually be used as a main loop for some automation logic
+    #>
     param(
-        $directory
+        $directory,
+        $sleepTime
     );
+
+    write-warning "untested/poorly implemented"
 
     if(-not $directory){$directory = $(New-TemporaryFile | Select-object -Property Directory)}
 
@@ -10,13 +17,19 @@ function Start-ScrapingLoop
     {
 
         1..100 | %{
+            #Maybe eventually ship to a shared process in memory/pointer instead of writing to disc?
             New-ScreenShot -path $_ -directory $directory
+            Start-sleep $sleepTime
         }
     }
 }
 
 function New-ScreenShot
 {
+    <#
+        .DESCRIPTION
+            takes a snapshot starting and ending at the given pixel points of the indicated screen (main screen if not specified)
+    #>
     param(
         [parameter()]$startx=0,
         [parameter()]$starty=0,
@@ -26,7 +39,8 @@ function New-ScreenShot
         $path,
         $directory
     );
-    if(-not $directory -or -not $path){$temp=$(New-TemporaryFile)
+    if(-not $directory -or -not $path){
+        $temp=$(New-TemporaryFile)
         if(-not $directory){$directory = $temp.DirectoryName}
         if(-not $path){$path = "$($temp.Name).bmp"}
         #$path = 
@@ -70,6 +84,10 @@ function Find-BitmapInBitmap
         $sensitivity,
         [switch]$binary #returns true/false, not not the location
     );
+
+    write-warning "untested/poorly implemented"
+
+
     [Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms"); 
     $tofindLoaded = new-object System.Drawing.Bitmap $toFInd
     $findInLoaded = new-object System.Drawing.Bitmap $findin
@@ -139,10 +157,13 @@ function Find-BitmapInBitmap
 
 }
 
-#memeory nonsesne is hard between powershell and c# it seems
+#memory nonsense is hard between powershell and c# it seems
 function Get-PixelArray
 {
     param([System.Drawing.Bitmap]$bitmap)
+
+    write-warning "untested/poorly implemented"
+
     [int[][]]$result=0..$bitmap.height
     $bitmapdata = $bitmap.LockBits([system.drawing.rectangle]::new(0, 0, $bitmap.Width, $bitmap.height), "ReadOnly" ,$bitmap.PixelFormat)
     [System.IntPtr]$ptr = $bitmapdata.Scan0
@@ -174,6 +195,7 @@ function Get-PixelArray
     $bitmap.UnlockBits($bitmapdata);
     return $result;
 }
+
 function Find-FirstPixelTestResult
 {
     # implementation found: https://codereview.stackexchange.com/questions/138011/find-a-bitmap-within-another-bitmap
@@ -182,6 +204,8 @@ function Find-FirstPixelTestResult
         $toFind,
         $findIn
     )
+    write-warning "untested/poorly implemented"
+
     [Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null;
     $needle = new-object System.Drawing.Bitmap $toFInd
     $haystack = new-object System.Drawing.Bitmap $findin
@@ -189,17 +213,27 @@ function Find-FirstPixelTestResult
     #$currentneedlex=$currentneedley=$currenthaystackx=$currenthaystacky=0
 
     $haystackdata = $haystack.LockBits([system.drawing.rectangle]::new(0, 0, $haystack.Width, $haystack.height), "ReadOnly" ,$haystack.PixelFormat)
-    $needledata = $needle.LockBits([system.drawing.rectangle]::new(0, 0, $needle.Width, $needle.height), "ReadOnly" ,$haystack.PixelFormat)
+    $needledata = $needle.LockBits([system.drawing.rectangle]::new(0, 0, $needle.Width, $needle.height), "ReadOnly" ,$needle.PixelFormat)
     [System.IntPtr]$haystackptr = $haystackdata.Scan0
     [System.IntPtr]$needleptr = $needledata.Scan0
-    $haystackbytes= New-object byte[] $haystackdata.stride
-    $needlebytes= New-object byte[] $needledata.stride
-    [system.runtime.interopservices.marshal]::copy($haystackptr,$haystackbytes,0,$haystackbytes.length)
-    [system.runtime.interopservices.marshal]::copy($needleptr,$needlebytes,0,$needlebytes.length)
+    $haystackbytes= New-object byte[] ($haystackdata.stride*$haystackdata.Height)
+    $needlebytes= New-object byte[] ($needledata.stride*$needledata.Height)
+    $y=0; #temporary disable y*data.stride until for loop used again
+    #for($y=0;$y -lt $haystack.Height;$y++)
+    #{
+        [system.runtime.interopservices.marshal]::copy($haystackptr,[byte[]]$haystackbytes,[int]$($y*$haystackdata.stride),[int]($haystackdata.stride*$haystackdata.Height))
+        [system.runtime.interopservices.marshal]::copy($needleptr,[byte[]]$needlebytes,[int]$($y*$needlebytes.stride),[int]($needledata.stride*$needledata.Height))
 
-    #This is actually working to test if the given resultant array's are equal!
-    $verboseoutput = Compare-Object @($haystackbytes[0..$needlebytes.Length]) @($needlebytes)
-    $verboseoutput | %{ write-verbose $_ }
+        #This is actually working to test if the given resultant array's are equal!
+        $verboseoutput = Compare-Object @($haystackbytes[0..$needlebytes.Length]) @($needlebytes)
+        $verboseoutput | %{ write-verbose $_ }
+    #}  
+
+    #after looping, unpin data
+    $needle.UnlockBits($needledata);
+    $haystack.UnlockBits($haystackdata);
+
+    #todo; return the actual pixel location
     if($verboseoutput){return $false;}
     #for($i=0;$i -lt $needlebytes.Length; $i++)
     #{
@@ -210,7 +244,5 @@ function Find-FirstPixelTestResult
     #}
     return $true;
     #$bytes=0..[int]$($bitmapdata.stride)*$($bitmap.height)
-
 }
-
 #Find-BitmapInBitmap -toFind ./24color.bmp -findIn ./24color.bmp -sensitivity 80
