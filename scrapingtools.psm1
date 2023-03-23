@@ -45,7 +45,7 @@ function New-ScreenShot
         if(-not $path){$path = "$($temp.Name).bmp"}
         #$path = 
     }
-
+    Add-Type -AssemblyName System.Windows.Forms
     #Stolen from: https://stackoverflow.com/questions/2969321/how-can-i-do-a-screen-capture-in-windows-powershell
     [Reflection.Assembly]::LoadWithPartialName("System.Drawing") | Out-null
     function screenshot([Drawing.Rectangle]$bounds, $path) {
@@ -60,15 +60,17 @@ function New-ScreenShot
         $bmp.Dispose()
     }
 
-    if($screenindex)
+    $objectscreens=[System.Windows.Forms.Screen]::AllScreens
+
+    if(-not $screenindex)
     {
-        $objectscreens=[System.Windows.Forms.Screen]::AllSCreens
-        $screenindexbounds=$objectscreens[$screenindex]
-        $startx=$screenindexbounds.Left
-        $starty=$screenindexbounds.Top
-        $endx=$screenindexbounds.Right
-        $endy=$screenindexbounds.Bottom
+       $screenIndex =0;
     }
+    $screenindexbounds=$objectscreens[$screenindex]
+    $startx=$screenindexbounds.bounds.Left
+    $starty=$screenindexbounds.bounds.Top
+    $endx=$screenindexbounds.bounds.Right
+    $endy=$screenindexbounds.bounds.Bottom
     
     $bounds=[Drawing.Rectangle]::FromLTRB($startx,$starty,$endx,$endy)
     screenshot $bounds $path
@@ -156,6 +158,66 @@ function Find-BitmapInBitmap
     }
 
 }
+
+function Get-BitmapLocationInBitmap
+{
+    param(
+        [parameter()][string]$toFind,
+        [parameter()][string]$findIn
+        #[float]$Threshold = 0.95
+    )
+
+    $largeBitmap = [System.Drawing.Bitmap]::FromFile($findIn)
+    $smallBitmap = [System.Drawing.Bitmap]::FromFile($toFind)
+    $totalIterations = ($largeBitmap.Width - $smallBitmap.Width + 1) * ($largeBitmap.Height - $smallBitmap.Height + 1)
+    $smallWidth = $smallBitmap.Width
+    $smallHeight = $smallBitmap.Height
+    $largeWidth = $largeBitmap.Width
+    $largeHeight = $largeBitmap.Height
+# Create a progress bar
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Minimum = 0
+$progressBar.Maximum = $totalIterations
+$progressBar.Value = 0
+$progressBar.Step = 1
+    #$thresholdColor = [System.Drawing.Color]::FromArgb([int]([math]::Round((1-$Threshold)*255)),0,0,0)
+
+    for ($x = 0; $x -lt $largeBitmap.Width - $smallBitmap.Width; $x++) {
+        for ($y = 0; $y -lt $largeBitmap.Height - $smallBitmap.Height; $y++) {
+            $match = $true
+            for ($x1 = 0; $x1 -lt $smallBitmap.Width; $x1++) {
+                for ($y1 = 0; $y1 -lt $smallBitmap.Height; $y1++) {
+                    $largePixel = $largeBitmap.GetPixel($x + $x1, $y + $y1)
+                    $smallPixel = $smallBitmap.GetPixel($x1, $y1)
+                    $distance = [Math]::Sqrt(([Math]::Pow(($largePixel.R - $smallPixel.R), 2) + `
+                                               [Math]::Pow(($largePixel.G - $smallPixel.G), 2) + `
+                                               [Math]::Pow(($largePixel.B - $smallPixel.B), 2)))
+                    if ($distance -gt 50) {
+                        $match = $false
+                        break
+                    }
+                }
+                if (-not $match) {
+                    break
+                }
+            }
+            if ($match) {
+                Write-Host "Found small image at x=$x, y=$y"
+            }
+
+            $progressBar.PerformStep()  # Increment the progress bar value
+            [System.Windows.Forms.Application]::DoEvents()  # Refresh the progress bar display
+        }
+    }
+    
+    $smallBitmap.Dispose()
+    $largeBitmap.Dispose()
+    # Hide the progress bar
+    $progressBar.Visible = $false
+    $progressBar.Dispose()
+    return $null
+}
+
 
 #memory nonsense is hard between powershell and c# it seems
 function Get-PixelArray
